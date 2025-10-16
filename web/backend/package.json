@@ -1,10 +1,11 @@
 {
-  "name": "health-tracker-web",
+  "name": "health-tracker-backend",
   "version": "0.1.0",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "node test-connection.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

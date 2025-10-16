@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const path = require('path');
 require('dotenv').config();
 
-const { Doctor } = require('./models');
+const { Doctor, Patient, PatientData } = require('./models');
 
 const app = express();
 app.use(cors());
@@ -178,6 +178,122 @@ app.get('/patients/:phone/readings', (req,res)=>{
   const phone = req.params.phone;
   const data = store[phone] || {readings:[]};
   res.json(data);
+});
+
+// Patient Endpoints
+// 1. Get all patients
+app.get('/api/patients', async (req, res) => {
+    try {
+        const patients = await Patient.find();
+        res.json(patients);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 2. Get patient by ID
+app.get('/api/patients/:patientId', async (req, res) => {
+    try {
+        const patient = await Patient.findOne({ patientId: req.params.patientId });
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+        res.json(patient);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 3. Add new patient health data
+app.post('/api/patients/:patientId/data', async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        const { bloodPressure, sugarLevel, heartRate, weight } = req.body;
+
+        // Check if patient exists
+        const patient = await Patient.findOne({ patientId });
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+
+        // Create new health data entry
+        const patientData = new PatientData({
+            patientId,
+            bloodPressure,
+            sugarLevel,
+            heartRate,
+            weight
+        });
+
+        const savedData = await patientData.save();
+        res.status(201).json(savedData);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// 4. Get patient health data history
+app.get('/api/patients/:patientId/data', async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        
+        // Check if patient exists
+        const patient = await Patient.findOne({ patientId });
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+
+        const healthData = await PatientData.find({ patientId }).sort({ recordedAt: -1 });
+        res.json(healthData);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 5. Update patient health data record
+app.put('/api/patients/data/:recordId', async (req, res) => {
+    try {
+        const { recordId } = req.params;
+        const { bloodPressure, sugarLevel, heartRate, weight } = req.body;
+        
+        // Find and update the health data record
+        const updatedRecord = await PatientData.findByIdAndUpdate(
+            recordId,
+            {
+                bloodPressure,
+                sugarLevel,
+                heartRate,
+                weight,
+                recordedAt: new Date() // Update the timestamp
+            },
+            { new: true, runValidators: true }
+        );
+        
+        if (!updatedRecord) {
+            return res.status(404).json({ error: 'Health record not found' });
+        }
+
+        res.json(updatedRecord);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// 6. Delete patient health data record
+app.delete('/api/patients/data/:recordId', async (req, res) => {
+    try {
+        const { recordId } = req.params;
+        
+        // Find and delete the health data record
+        const deletedRecord = await PatientData.findByIdAndDelete(recordId);
+        if (!deletedRecord) {
+            return res.status(404).json({ error: 'Health record not found' });
+        }
+
+        res.json({ message: 'Health record deleted successfully', deletedRecord });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.get('/health', (req,res)=> res.json({ok:true, uptime: process.uptime()}));
