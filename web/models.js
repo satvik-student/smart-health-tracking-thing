@@ -18,23 +18,9 @@ const doctorSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
-    specialization: {
-        type: String,
-        required: true,
-        enum: ['General Medicine', 'Cardiology', 'Diabetes', 'Pediatrics', 'Gynecology', 'Orthopedics', 'Community Health', 'Other']
-    },
     clinic: {
         type: String,
         required: true
-    },
-    licenseNumber: {
-        type: String,
-        trim: true
-    },
-    experience: {
-        type: Number,
-        min: 0,
-        max: 50
     },
     isActive: {
         type: Boolean,

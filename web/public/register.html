@@ -19,10 +19,7 @@
                 name: '',
                 phone: '',
                 email: '',
-                specialization: '',
-                clinic: '',
-                licenseNumber: '',
-                experience: ''
+                clinic: ''
             });
             const [status, setStatus] = useState('');
             const [loading, setLoading] = useState(false);
@@ -56,10 +53,7 @@
                             name: '',
                             phone: '',
                             email: '',
-                            specialization: '',
-                            clinic: '',
-                            licenseNumber: '',
-                            experience: ''
+                            clinic: ''
                         });
                         setTimeout(() => {
                             window.location.href = '/login';
@@ -119,26 +113,6 @@
                             </div>
 
                             <div className="form-group">
-                                <label>Specialization *</label>
-                                <select
-                                    name="specialization"
-                                    value={formData.specialization}
-                                    onChange={handleInputChange}
-                                    required
-                                >
-                                    <option value="">Select Specialization</option>
-                                    <option value="General Medicine">General Medicine</option>
-                                    <option value="Cardiology">Cardiology</option>
-                                    <option value="Diabetes">Diabetes</option>
-                                    <option value="Pediatrics">Pediatrics</option>
-                                    <option value="Gynecology">Gynecology</option>
-                                    <option value="Orthopedics">Orthopedics</option>
-                                    <option value="Community Health">Community Health</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-
-                            <div className="form-group">
                                 <label>Clinic/Hospital Name *</label>
                                 <input
                                     type="text"
@@ -148,31 +122,6 @@
                                     required
                                     placeholder="Primary Health Center, Village Name"
                                 />
-                            </div>
-
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>License Number</label>
-                                    <input
-                                        type="text"
-                                        name="licenseNumber"
-                                        value={formData.licenseNumber}
-                                        onChange={handleInputChange}
-                                        placeholder="Medical License"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Experience (Years)</label>
-                                    <input
-                                        type="number"
-                                        name="experience"
-                                        value={formData.experience}
-                                        onChange={handleInputChange}
-                                        min="0"
-                                        max="50"
-                                        placeholder="5"
-                                    />
-                                </div>
                             </div>
 
                             <button 

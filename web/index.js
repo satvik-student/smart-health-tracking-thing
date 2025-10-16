@@ -29,7 +29,7 @@ connectDB();
 // 1. Create a new doctor
 app.post('/api/doctors', async (req, res) => {
     try {
-        const { name, phone, email, specialization, clinic, licenseNumber, experience } = req.body;
+        const { name, phone, email, clinic } = req.body;
         
         // Check if doctor already exists
         const existingDoctor = await Doctor.findOne({ phone });
@@ -42,10 +42,7 @@ app.post('/api/doctors', async (req, res) => {
             name,
             phone,
             email,
-            specialization,
-            clinic,
-            licenseNumber,
-            experience: experience ? parseInt(experience) : undefined
+            clinic
         });
 
         await doctor.save();
@@ -55,7 +52,6 @@ app.post('/api/doctors', async (req, res) => {
                 id: doctor._id,
                 name: doctor.name,
                 phone: doctor.phone,
-                specialization: doctor.specialization,
                 clinic: doctor.clinic
             }
         });
@@ -68,7 +64,7 @@ app.post('/api/doctors', async (req, res) => {
 // 2. Get all doctors
 app.get('/api/doctors', async (req, res) => {
     try {
-        const doctors = await Doctor.find({ isActive: true }, 'name phone specialization clinic experience createdAt');
+        const doctors = await Doctor.find({ isActive: true }, 'name phone clinic createdAt');
         res.json(doctors);
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch doctors', error: error.message });
