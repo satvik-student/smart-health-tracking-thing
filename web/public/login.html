@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Login - Health Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="app"></div>
+    <script type="text/babel">
+        const { useState } = React;
+
+        function DoctorLogin() {
+            const [phone, setPhone] = useState('');
+            const [status, setStatus] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setStatus('');
+
+                try {
+                    const response = await fetch(`/api/doctors/${encodeURIComponent(phone)}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        setStatus('success');
+                        // Store doctor info in sessionStorage for the dashboard
+                        sessionStorage.setItem('doctor', JSON.stringify({
+                            id: result._id,
+                            name: result.name,
+                            phone: result.phone,
+                            specialization: result.specialization,
+                            clinic: result.clinic
+                        }));
+                        
+                        setTimeout(() => {
+                            window.location.href = '/dashboard';
+                        }, 1500);
+                    } else {
+                        setStatus(`error: ${result.message}`);
+                    }
+                } catch (error) {
+                    setStatus(`error: ${error.message}`);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="container">
+                    <div className="form-card">
+                        <div className="logo">🏥</div>
+                        <h1>Doctor Login</h1>
+                        <p className="subtitle">Access your patient dashboard</p>
+
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label>Phone Number</label>
+                                <input
+                                    type="tel"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    required
+                                    placeholder="+91 9876543210"
+                                    autoFocus
+                                />
+                            </div>
+
+                            <button 
+                                type="submit" 
+                                className="submit-btn"
+                                disabled={loading}
+                            >
+                                {loading ? <><span className="loading"></span> Logging in...</> : 'Login'}
+                            </button>
+                        </form>
+
+                        {status && (
+                            <div className={`status-message ${status.includes('error') ? 'error' : 'success'}`}>
+                                {status === 'success' 
+                                    ? 'Login successful! Redirecting to dashboard...' 
+                                    : status.replace('error: ', '')
+                                }
+                            </div>
+                        )}
+
+                        <div className="link-section">
+                            <p>New doctor? <a href="/register">Register here</a></p>
+                            <p style={{marginTop: '10px'}}>
+                                <small>For demo: Use phone number of a registered doctor</small>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<DoctorLogin />, document.getElementById('app'));
+    </script>
+</body>
+</html>
