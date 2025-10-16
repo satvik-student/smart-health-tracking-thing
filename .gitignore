@@ -1,0 +1,24 @@
+# Node
+node_modules/
+npm-debug.log
+.env
+
+# Expo
+.expo/
+web-build/
+.expo-shared/
+
+# Mac / VSCode
+.vscode/
+.DS_Store
+
+# Build artifacts
+dist/
+build/
+
+# logs
+logs/
+*.log
+
+# OS files
+Thumbs.db
