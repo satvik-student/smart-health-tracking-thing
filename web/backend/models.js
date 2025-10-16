@@ -46,14 +46,64 @@ const patientSchema = new mongoose.Schema({
     },
     patientId: {
         type: String,
-        required: true,
         unique: true,
-        trim: true
+        trim: true,
+        sparse: true  // Allow null/undefined until pre-save hook sets it
     },
     phone: {
         type: String,
         required: true,
         trim: true
+    },
+    age: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 120
+    },
+    gender: {
+        type: String,
+        required: true,
+        enum: ['Male', 'Female', 'Other']
+    },
+    password: {
+        type: String,
+        required: true,
+        minlength: 6
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
+});
+
+// Counter Schema for auto-incrementing patientId
+const counterSchema = new mongoose.Schema({
+    _id: { type: String, required: true },
+    seq: { type: Number, default: 1 }
+});
+
+const Counter = mongoose.model('Counter', counterSchema);
+
+// Pre-validate hook to auto-generate patientId starting from P002 (runs before validation)
+patientSchema.pre('validate', async function(next) {
+    const patient = this;
+    if (patient.patientId) {
+        return next();
+    }
+
+    try {
+        const counter = await Counter.findByIdAndUpdate(
+            'patientId',
+            { $inc: { seq: 1 } },
+            { new: true, upsert: true }
+        );
+        
+        const seqNumber = counter.seq + 1; // Start from P002
+        patient.patientId = `P${String(seqNumber).padStart(3, '0')}`;
+        next();
+    } catch (error) {
+        next(error);
     }
 });
 
@@ -112,4 +162,4 @@ const Patient = mongoose.model('Patient', patientSchema);
 // Create and export the Patient Data model
 const PatientData = mongoose.model('PatientData', patientDataSchema);
 
-module.exports = { Doctor, Patient, PatientData };
+module.exports = { Doctor, Patient, PatientData, Counter };
