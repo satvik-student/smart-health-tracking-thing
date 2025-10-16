@@ -13,10 +13,13 @@ import {
   FaEdit,
   FaTrash,
   FaSignOutAlt,
-  FaUsers
+  FaUsers,
+  FaBell,
+  FaPaperPlane,
+  FaTimes
 } from 'react-icons/fa';
 
-const Dashboard = ({ onLogout }) => {
+const Dashboard = ({ onLogout, doctorData }) => {
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showAddData, setShowAddData] = useState(false);
@@ -35,6 +38,18 @@ const Dashboard = ({ onLogout }) => {
     sugarLevel: '',
     heartRate: '',
     weight: ''
+  });
+
+  // Create Notification modal state
+  const [showCreateNotification, setShowCreateNotification] = useState(false);
+  const [notifSubmitting, setNotifSubmitting] = useState(false);
+  const [notifForm, setNotifForm] = useState({
+    title: '',
+    message: '',
+    type: 'info',
+    priority: 'normal',
+    recipients: [], // array of patientId strings
+    scheduledFor: '' // ISO string
   });
 
   useEffect(() => {
@@ -216,6 +231,158 @@ const Dashboard = ({ onLogout }) => {
 
   return (
     <div className="dashboard">
+      {/* Create Notification Modal */}
+      {showCreateNotification && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>
+                <FaBell className="section-icon" /> Create Notification
+              </h3>
+              <button className="icon-btn" onClick={() => setShowCreateNotification(false)}>
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    setNotifSubmitting(true);
+                    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+                    const currentDoctorId = doctorData?.doctor?.id || doctorData?.doctor?._id || doctorData?.id || doctorData?._id;
+                    const currentDoctorName = doctorData?.doctor?.name || doctorData?.name;
+
+                    if (!currentDoctorId) {
+                      throw new Error('Missing doctor identity. Please re-login.');
+                    }
+                    const body = {
+                      title: notifForm.title,
+                      message: notifForm.message,
+                      type: notifForm.type,
+                      priority: notifForm.priority,
+                      doctorId: currentDoctorId,
+                      doctorName: currentDoctorName,
+                      recipients: notifForm.recipients,
+                      scheduledFor: notifForm.scheduledFor ? new Date(notifForm.scheduledFor) : undefined,
+                    };
+
+                    const res = await fetch(`${API_URL}/api/notifications`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(body),
+                    });
+
+                    if (!res.ok) {
+                      const err = await res.json().catch(() => ({}));
+                      throw new Error(err.message || `HTTP ${res.status}`);
+                    }
+
+                    setShowCreateNotification(false);
+                    setNotifForm({ title: '', message: '', type: 'info', priority: 'normal', recipients: [], scheduledFor: '' });
+                    showSuccessNotification('Notification created successfully');
+                  } catch (err) {
+                    console.error('Create notification failed', err);
+                    showErrorNotification(err.message || 'Failed to create notification');
+                  } finally {
+                    setNotifSubmitting(false);
+                  }
+                }}
+              >
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Title</label>
+                    <input
+                      type="text"
+                      value={notifForm.title}
+                      onChange={(e) => setNotifForm({ ...notifForm, title: e.target.value })}
+                      placeholder="Enter title"
+                      required
+                      maxLength={120}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Type</label>
+                    <select
+                      value={notifForm.type}
+                      onChange={(e) => setNotifForm({ ...notifForm, type: e.target.value })}
+                    >
+                      <option value="info">Info</option>
+                      <option value="alert">Alert</option>
+                      <option value="reminder">Reminder</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Priority</label>
+                    <select
+                      value={notifForm.priority}
+                      onChange={(e) => setNotifForm({ ...notifForm, priority: e.target.value })}
+                    >
+                      <option value="low">Low</option>
+                      <option value="normal">Normal</option>
+                      <option value="high">High</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label>Message</label>
+                    <textarea
+                      value={notifForm.message}
+                      onChange={(e) => setNotifForm({ ...notifForm, message: e.target.value })}
+                      placeholder="Write your message..."
+                      rows={4}
+                      required
+                      maxLength={2000}
+                    />
+                  </div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label>Recipients</label>
+                    <div className="recipients-grid">
+                      {patients.map((p) => {
+                        const checked = notifForm.recipients.includes(p.patientId);
+                        return (
+                          <label key={p.patientId} className={`recipient-chip ${checked ? 'selected' : ''}`}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setNotifForm({ ...notifForm, recipients: [...notifForm.recipients, p.patientId] });
+                                } else {
+                                  setNotifForm({ ...notifForm, recipients: notifForm.recipients.filter((id) => id !== p.patientId) });
+                                }
+                              }}
+                            />
+                            <span>{p.name} ({p.patientId})</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <small>Select one or more patients</small>
+                  </div>
+                  <div className="form-group">
+                    <label>Schedule (optional)</label>
+                    <input
+                      type="datetime-local"
+                      value={notifForm.scheduledFor}
+                      onChange={(e) => setNotifForm({ ...notifForm, scheduledFor: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="form-actions">
+                  <button type="button" className="secondary-btn" onClick={() => setShowCreateNotification(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="primary-btn" disabled={notifSubmitting || notifForm.recipients.length === 0}>
+                    <FaPaperPlane className="btn-icon" />
+                    {notifSubmitting ? 'Sending...' : 'Send Notification'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <header className="dashboard-header">
         <div className="header-left">
@@ -316,6 +483,21 @@ const Dashboard = ({ onLogout }) => {
                   >
                     <FaPlus className="btn-icon" />
                     Add Health Data
+                  </button>
+                  <button
+                    className="secondary-btn"
+                    onClick={() => {
+                      if (selectedPatient?.patientId) {
+                        setNotifForm((prev) => ({
+                          ...prev,
+                          recipients: Array.from(new Set([...(prev.recipients || []), selectedPatient.patientId]))
+                        }));
+                      }
+                      setShowCreateNotification(true);
+                    }}
+                  >
+                    <FaBell className="btn-icon" />
+                    Create Notification
                   </button>
                 </div>
               </div>

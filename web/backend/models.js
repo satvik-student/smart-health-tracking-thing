@@ -71,6 +71,10 @@ const patientSchema = new mongoose.Schema({
         required: true,
         minlength: 6
     },
+    expoPushToken: {
+        type: String,
+        trim: true
+    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -163,3 +167,33 @@ const Patient = mongoose.model('Patient', patientSchema);
 const PatientData = mongoose.model('PatientData', patientDataSchema);
 
 module.exports = { Doctor, Patient, PatientData, Counter };
+
+// -------------------- Notifications --------------------
+
+// Subdocument for each recipient so we can track per-patient status
+const notificationRecipientSchema = new mongoose.Schema({
+    patientId: { type: String, required: true, ref: 'Patient', trim: true },
+    deliveredAt: { type: Date },
+    readAt: { type: Date }
+}, { _id: false });
+
+// Notification Schema - created by a doctor for one or more patients
+const notificationSchema = new mongoose.Schema({
+    title: { type: String, required: true, trim: true, maxlength: 120 },
+    message: { type: String, required: true, trim: true, maxlength: 2000 },
+    type: { type: String, enum: ['info', 'alert', 'reminder'], default: 'info' },
+    priority: { type: String, enum: ['low', 'normal', 'high', 'critical'], default: 'normal' },
+    doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true },
+    doctorName: { type: String, trim: true },
+    recipients: { type: [notificationRecipientSchema], validate: v => Array.isArray(v) && v.length > 0 },
+    scheduledFor: { type: Date },
+    createdAt: { type: Date, default: Date.now },
+    metadata: { type: Object }
+});
+
+// Index to efficiently fetch notifications for a patient
+notificationSchema.index({ 'recipients.patientId': 1, createdAt: -1 });
+
+const Notification = mongoose.model('Notification', notificationSchema);
+
+module.exports.Notification = Notification;

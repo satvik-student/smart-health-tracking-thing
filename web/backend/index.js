@@ -3,9 +3,10 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
+const axios = require('axios');
 require('dotenv').config();
 
-const { Doctor, Patient, PatientData } = require('./models');
+const { Doctor, Patient, PatientData, Notification } = require('./models');
 
 const app = express();
 app.use(cors());
@@ -24,6 +25,34 @@ const connectDB = async () => {
 
 // Initialize database connection
 connectDB();
+
+// Helper function to send push notifications via Expo
+async function sendPushNotification(expoPushToken, title, message, data = {}) {
+    try {
+        const pushMessage = {
+            to: expoPushToken,
+            sound: 'default',
+            title: title,
+            body: message,
+            data: { ...data, type: 'notification' },
+            priority: 'high',
+            channelId: 'default',
+        };
+
+        const response = await axios.post('https://exp.host/--/api/v2/push/send', pushMessage, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            }
+        });
+
+        console.log('Push notification sent:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Push notification error:', error.response?.data || error.message);
+        return null;
+    }
+}
 
 // Doctor Database Endpoints
 // 1. Create a new doctor
@@ -262,6 +291,33 @@ app.post('/api/patients/login', async (req, res) => {
     }
 });
 
+// Save push token for patient
+app.post('/api/patients/:patientId/push-token', async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        const { expoPushToken } = req.body;
+
+        if (!expoPushToken) {
+            return res.status(400).json({ message: 'expoPushToken is required' });
+        }
+
+        const patient = await Patient.findOneAndUpdate(
+            { patientId },
+            { expoPushToken },
+            { new: true }
+        );
+
+        if (!patient) {
+            return res.status(404).json({ message: 'Patient not found' });
+        }
+
+        res.json({ message: 'Push token saved successfully' });
+    } catch (error) {
+        console.error('Save push token error:', error);
+        res.status(500).json({ message: 'Failed to save push token', error: error.message });
+    }
+});
+
 // In-memory store for patients (keeping existing functionality): { phone: { readings: [...] , meta: {...} } }
 const store = {};
 
@@ -397,6 +453,122 @@ app.delete('/api/patients/data/:recordId', async (req, res) => {
 
 app.get('/health', (req,res)=> res.json({ok:true, uptime: process.uptime()}));
 
+// -------------------- Notification Endpoints --------------------
+
+// Create a notification (doctor to one or more patients)
+// Body: { title, message, type?, priority?, doctorId, doctorName?, recipients: [patientId], scheduledFor? }
+app.post('/api/notifications', async (req, res) => {
+    try {
+        const { title, message, type, priority, doctorId, doctorName, recipients, scheduledFor, metadata } = req.body;
+
+        if (!title || !message || !doctorId || !Array.isArray(recipients) || recipients.length === 0) {
+            return res.status(400).json({ message: 'title, message, doctorId and at least one recipient are required' });
+        }
+
+        // Validate doctorId is a valid ObjectId and exists
+        if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+            return res.status(400).json({ message: 'Invalid doctorId' });
+        }
+        const doctorExists = await Doctor.exists({ _id: doctorId, isActive: true });
+        if (!doctorExists) {
+            return res.status(400).json({ message: 'Doctor not found or inactive' });
+        }
+
+        // Optional: ensure all recipient patientIds exist
+        const count = await Patient.countDocuments({ patientId: { $in: recipients } });
+        if (count !== recipients.length) {
+            return res.status(400).json({ message: 'One or more recipients not found' });
+        }
+
+        const doc = new Notification({
+            title,
+            message,
+            type,
+            priority,
+            doctorId,
+            doctorName,
+            recipients: recipients.map(pid => ({ patientId: pid })),
+            scheduledFor,
+            metadata
+        });
+
+        const saved = await doc.save();
+
+        // Send push notifications to all recipients
+        for (const recipientId of recipients) {
+            const patient = await Patient.findOne({ patientId: recipientId });
+            if (patient?.expoPushToken) {
+                await sendPushNotification(
+                    patient.expoPushToken,
+                    title,
+                    message,
+                    {
+                        notificationId: saved._id.toString(),
+                        type: type || 'info',
+                        priority: priority || 'normal',
+                        doctorName: doctorName || 'Doctor'
+                    }
+                );
+            }
+        }
+
+        res.status(201).json({ message: 'Notification created', notificationId: saved._id });
+    } catch (error) {
+        console.error('Create notification error:', error);
+        res.status(500).json({ message: 'Failed to create notification', error: error.message });
+    }
+});
+
+// Get notifications for a patient (most recent first)
+app.get('/api/patients/:patientId/notifications', async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        const notifications = await Notification.find({ 'recipients.patientId': patientId })
+            .sort({ createdAt: -1 })
+            .select('title message type priority doctorId doctorName createdAt scheduledFor recipients');
+
+        // For convenience, compute read status per notification for this patient
+        const mapped = notifications.map(n => {
+            const rec = n.recipients.find(r => r.patientId === patientId);
+            return {
+                id: n._id,
+                title: n.title,
+                message: n.message,
+                type: n.type,
+                priority: n.priority,
+                doctorId: n.doctorId,
+                doctorName: n.doctorName,
+                createdAt: n.createdAt,
+                scheduledFor: n.scheduledFor,
+                readAt: rec?.readAt || null,
+                deliveredAt: rec?.deliveredAt || null
+            };
+        });
+
+        res.json(mapped);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch notifications', error: error.message });
+    }
+});
+
+// Mark a notification as read for a specific patient
+app.post('/api/patients/:patientId/notifications/:notificationId/read', async (req, res) => {
+    try {
+        const { patientId, notificationId } = req.params;
+        const updated = await Notification.findOneAndUpdate(
+            { _id: notificationId, 'recipients.patientId': patientId },
+            { $set: { 'recipients.$.readAt': new Date(), 'recipients.$.deliveredAt': new Date() } },
+            { new: true }
+        );
+        if (!updated) {
+            return res.status(404).json({ message: 'Notification not found for this patient' });
+        }
+        res.json({ message: 'Marked as read' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to mark as read', error: error.message });
+    }
+});
+
 // API root endpoint
 app.get('/', (req, res) => {
     res.json({ 
@@ -407,7 +579,10 @@ app.get('/', (req, res) => {
             doctors: '/api/doctors',
             patients: '/api/patients',
             patientRegister: '/api/patients/register',
-            patientLogin: '/api/patients/login'
+            patientLogin: '/api/patients/login',
+            createNotification: '/api/notifications',
+            patientNotifications: '/api/patients/:patientId/notifications',
+            markNotificationRead: '/api/patients/:patientId/notifications/:notificationId/read'
         }
     });
 });
