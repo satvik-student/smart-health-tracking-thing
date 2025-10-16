@@ -29,7 +29,12 @@ connectDB();
 // 1. Create a new doctor
 app.post('/api/doctors', async (req, res) => {
     try {
-        const { name, phone, email, clinic } = req.body;
+        const { name, phone, email, password, clinic } = req.body;
+        
+        // Validate password
+        if (!password || password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+        }
         
         // Check if doctor already exists
         const existingDoctor = await Doctor.findOne({ phone });
@@ -37,11 +42,16 @@ app.post('/api/doctors', async (req, res) => {
             return res.status(400).json({ message: 'Doctor with this phone number already exists' });
         }
 
+        // Hash password
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         // Create new doctor
         const doctor = new Doctor({
             name,
             phone,
             email,
+            password: hashedPassword,
             clinic
         });
 
@@ -71,20 +81,55 @@ app.get('/api/doctors', async (req, res) => {
     }
 });
 
-// 3. Get doctor by phone
+// 3. Doctor Login
+app.post('/api/doctors/login', async (req, res) => {
+    try {
+        const { phone, password } = req.body;
+        
+        // Find doctor by phone
+        const doctor = await Doctor.findOne({ phone, isActive: true });
+        if (!doctor) {
+            return res.status(401).json({ message: 'Invalid phone number or password' });
+        }
+
+        // Verify password
+        const bcrypt = require('bcryptjs');
+        const isPasswordValid = await bcrypt.compare(password, doctor.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Invalid phone number or password' });
+        }
+
+        // Return doctor info (excluding password)
+        res.json({
+            message: 'Login successful',
+            doctor: {
+                id: doctor._id,
+                name: doctor.name,
+                phone: doctor.phone,
+                clinic: doctor.clinic
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Login failed', error: error.message });
+    }
+});
+
+// 4. Get doctor by phone
 app.get('/api/doctors/:phone', async (req, res) => {
     try {
         const doctor = await Doctor.findOne({ phone: req.params.phone, isActive: true });
         if (!doctor) {
             return res.status(404).json({ message: 'Doctor not found' });
         }
-        res.json(doctor);
+        // Don't return password
+        const { password, ...doctorWithoutPassword } = doctor.toObject();
+        res.json(doctorWithoutPassword);
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch doctor', error: error.message });
     }
 });
 
-// 4. Update doctor
+// 5. Update doctor
 app.put('/api/doctors/:phone', async (req, res) => {
     try {
         const doctor = await Doctor.findOneAndUpdate(
@@ -101,7 +146,7 @@ app.put('/api/doctors/:phone', async (req, res) => {
     }
 });
 
-// 5. Delete doctor (soft delete)
+// 6. Delete doctor (soft delete)
 app.delete('/api/doctors/:phone', async (req, res) => {
     try {
         const doctor = await Doctor.findOneAndUpdate(

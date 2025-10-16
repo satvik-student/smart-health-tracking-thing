@@ -18,6 +18,11 @@ const doctorSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
+    password: {
+        type: String,
+        required: true,
+        minlength: 6
+    },
     clinic: {
         type: String,
         required: true

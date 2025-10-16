@@ -19,6 +19,8 @@
                 name: '',
                 phone: '',
                 email: '',
+                password: '',
+                confirmPassword: '',
                 clinic: ''
             });
             const [status, setStatus] = useState('');
@@ -35,6 +37,20 @@
                 e.preventDefault();
                 setLoading(true);
                 setStatus('');
+
+                // Validate passwords match
+                if (formData.password !== formData.confirmPassword) {
+                    setStatus('error: Passwords do not match');
+                    setLoading(false);
+                    return;
+                }
+
+                // Validate password length
+                if (formData.password.length < 6) {
+                    setStatus('error: Password must be at least 6 characters long');
+                    setLoading(false);
+                    return;
+                }
 
                 try {
                     const response = await fetch('/api/doctors', {
@@ -53,6 +69,8 @@
                             name: '',
                             phone: '',
                             email: '',
+                            password: '',
+                            confirmPassword: '',
                             clinic: ''
                         });
                         setTimeout(() => {
@@ -108,6 +126,33 @@
                                         value={formData.email}
                                         onChange={handleInputChange}
                                         placeholder="doctor@clinic.com"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Password *</label>
+                                    <input
+                                        type="password"
+                                        name="password"
+                                        value={formData.password}
+                                        onChange={handleInputChange}
+                                        required
+                                        minLength="6"
+                                        placeholder="Minimum 6 characters"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Confirm Password *</label>
+                                    <input
+                                        type="password"
+                                        name="confirmPassword"
+                                        value={formData.confirmPassword}
+                                        onChange={handleInputChange}
+                                        required
+                                        minLength="6"
+                                        placeholder="Confirm password"
                                     />
                                 </div>
                             </div>
