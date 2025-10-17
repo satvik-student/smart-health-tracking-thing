@@ -75,8 +75,11 @@ const AuthPage = ({ onBack, onLoginSuccess }) => {
       {/* Header with Back Button */}
       <header className="auth-header">
         <div className="logo" onClick={onBack}>
-          <FaHeartbeat className="logo-icon" />
-          <span className="logo-text">SmartHealth</span>
+          <span className="logo-icon">🏥</span>
+          <span className="logo-text">
+            <span style={{ color: '#00c9a7' }}>Arogya</span>
+            <span style={{ color: '#ffffff' }}>Link</span>
+          </span>
         </div>
         {onBack && (
           <button className="back-btn" onClick={onBack}>

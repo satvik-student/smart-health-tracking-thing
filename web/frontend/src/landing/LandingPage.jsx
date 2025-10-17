@@ -15,8 +15,11 @@ const LandingPage = ({ onAuth }) => {
       <section className="hero">
         <nav className="navbar">
           <div className="logo">
-            <FaHeartbeat className="logo-icon" />
-            <span className="logo-text">SmartHealth</span>
+            <span className="logo-icon">🏥</span>
+            <span className="logo-text">
+              <span style={{ color: '#00c9a7' }}>Arogya</span>
+              <span style={{ color: '#ffffff' }}>Link</span>
+            </span>
           </div>
           <div className="nav-actions">
             <button className="nav-btn secondary-btn" onClick={onAuth}>
@@ -28,9 +31,9 @@ const LandingPage = ({ onAuth }) => {
         
         <div className={`hero-content ${isVisible ? 'visible' : ''}`}>
           <h1 className="hero-title">
-            <span className="gradient-text">Smart Health</span>
+            <span className="gradient-text">ArogyaLink</span>
             <br />
-            Tracking System
+            Health Tracking System
           </h1>
           
           <p className="hero-subtitle">
@@ -43,36 +46,6 @@ const LandingPage = ({ onAuth }) => {
               Get Started
               <FaArrowRight className="btn-icon" />
             </button>
-          </div>
-          
-          <div className="hero-stats">
-            <div className="stat-item">
-              <div className="stat-number">1000+</div>
-              <div className="stat-label">Active Doctors</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">50K+</div>
-              <div className="stat-label">Patients Monitored</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">99.9%</div>
-              <div className="stat-label">Uptime</div>
-            </div>
-          </div>
-          
-          <div className="hero-features">
-            <div className="feature-pill">
-              <FaRobot className="feature-icon" />
-              AI-Powered Analytics
-            </div>
-            <div className="feature-pill">
-              <FaShieldAlt className="feature-icon" />
-              End-to-End Encryption
-            </div>
-            <div className="feature-pill">
-              <FaMobile className="feature-icon" />
-              Cross-Platform Support
-            </div>
           </div>
         </div>
         

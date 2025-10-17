@@ -54,10 +54,8 @@
 }
 
 .logo-text {
-  background: linear-gradient(135deg, #00c9a7, #7b2ff2, #0066ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 900;
+  font-size: 1.5rem;
 }
 
 .header-title h1 {
@@ -449,6 +447,20 @@
   border-radius: 8px;
   color: #ffffff;
   font-size: 1rem;
+  cursor: pointer;
+}
+
+.form-group select option {
+  background: #1a1a2e;
+  color: #ffffff;
+  padding: 0.5rem;
+}
+
+.form-group select:focus, .form-group textarea:focus {
+  outline: none;
+  border-color: #00c9a7;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 201, 167, 0.1);
 }
 
 .form-group input:focus {
@@ -963,4 +975,59 @@
     min-width: auto;
     max-width: none;
   }
+}
+
+/* Health Trends Chart */
+.health-chart {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.health-chart h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+  font-size: 20px;
+  margin-bottom: 24px;
+  font-weight: 600;
+}
+
+.chart-container {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.chart-container .recharts-text {
+  fill: #888;
+  font-size: 12px;
+}
+
+.chart-container .recharts-legend-item-text {
+  color: #fff !important;
+}
+
+.chart-container .recharts-tooltip-wrapper {
+  outline: none;
+}
+
+.chart-container .recharts-default-tooltip {
+  background-color: #1a1a2e !important;
+  border: 1px solid #2a2a3e !important;
+  border-radius: 8px !important;
+  padding: 10px !important;
+}
+
+.chart-container .recharts-tooltip-label {
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.chart-container .recharts-tooltip-item {
+  color: #fff !important;
 }

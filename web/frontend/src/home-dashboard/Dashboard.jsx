@@ -18,6 +18,7 @@ import {
   FaPaperPlane,
   FaTimes
 } from 'react-icons/fa';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Dashboard = ({ onLogout, doctorData }) => {
   const [patients, setPatients] = useState([]);
@@ -229,6 +230,20 @@ const Dashboard = ({ onLogout, doctorData }) => {
     return healthData[0];
   };
 
+  const getChartData = () => {
+    if (healthData.length === 0) return [];
+    
+    // Get last 10 records and reverse to show oldest first
+    return healthData.slice(0, 10).reverse().map(record => ({
+      date: new Date(record.recordedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      systolic: record.bloodPressure.systolic,
+      diastolic: record.bloodPressure.diastolic,
+      sugar: record.sugarLevel,
+      heartRate: record.heartRate,
+      weight: record.weight
+    }));
+  };
+
   return (
     <div className="dashboard">
       {/* Create Notification Modal */}
@@ -387,8 +402,11 @@ const Dashboard = ({ onLogout, doctorData }) => {
       <header className="dashboard-header">
         <div className="header-left">
           <div className="logo">
-            <FaHeartbeat className="logo-icon" />
-            <span className="logo-text">SmartHealth</span>
+            <span className="logo-icon">🏥</span>
+            <span className="logo-text">
+              <span style={{ color: '#00c9a7' }}>Arogya</span>
+              <span style={{ color: '#ffffff' }}>Link</span>
+            </span>
           </div>
           <div className="header-title">
             <h1>Doctor Dashboard</h1>
@@ -465,6 +483,7 @@ const Dashboard = ({ onLogout, doctorData }) => {
                   <div className="patient-meta">
                     <span>Patient ID: {selectedPatient.patientId}</span>
                     <span>Phone: {selectedPatient.phone}</span>
+                    <span>Age: {selectedPatient.age}</span>
                   </div>
                 </div>
                 <div className="patient-actions">
@@ -550,6 +569,37 @@ const Dashboard = ({ onLogout, doctorData }) => {
                       <p className="vital-value">{getLatestVitals().weight}</p>
                       <span className="vital-unit">kg</span>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Health Trends Chart */}
+              {healthData.length > 0 && (
+                <div className="health-chart">
+                  <h3>
+                    <FaChartLine className="section-icon" />
+                    Health Trends
+                  </h3>
+                  <div className="chart-container">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={getChartData()}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3e" />
+                        <XAxis dataKey="date" stroke="#888" />
+                        <YAxis stroke="#888" />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#1a1a2e', 
+                            border: '1px solid #2a2a3e',
+                            borderRadius: '8px'
+                          }}
+                        />
+                        <Legend />
+                        <Line type="monotone" dataKey="systolic" stroke="#00c9a7" name="BP Systolic" strokeWidth={2} />
+                        <Line type="monotone" dataKey="diastolic" stroke="#7b2ff2" name="BP Diastolic" strokeWidth={2} />
+                        <Line type="monotone" dataKey="sugar" stroke="#ff6b9d" name="Sugar" strokeWidth={2} />
+                        <Line type="monotone" dataKey="heartRate" stroke="#ffd700" name="Heart Rate" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               )}
